@@ -1,0 +1,32 @@
+{
+  "name": "BeatRanking",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.archesv.beatranking",
+    "productName": "BeatRanking",
+    "copyright": "Copyright ArcheSV © 2025",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "index.html",
+      "style.css",
+      "renderer.js",
+      "scoresaber.png",
+      "beatleader.png",
+      "node_modules/**/*"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^25.0.0",
+    "electron-builder": "^23.0.0"
+  }
+}

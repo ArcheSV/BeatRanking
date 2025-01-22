@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Navegador Integrado</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: sans-serif;
+      background: transparent; /* <-- IMPORTANTE (Ya no es TAN importante xq no me sale la puta barra transparente) */
+    }
+
+    /* Layout vertical */
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Barra superior */
+    #barra-superior {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 40px;
+
+
+      background-color: rgba(255, 255, 255, 0.1);
+
+
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+
+      /* Permitir arrastrar la ventana con el ratón */
+      -webkit-app-region: drag;
+      flex: 0 0 40px; /* altura fija de 40px */
+
+      /* Línea sutil en la parte inferior */
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Botones de la barra superior */
+    #barra-superior button {
+      -webkit-app-region: no-drag;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      width: 40px;
+      height: 40px;
+      padding: 8px;
+      outline: none;
+    }
+
+    /* Controles de ventana */
+    #window-controls {
+      margin-left: auto;
+      display: flex;
+    }
+    #window-controls button {
+      width: 45px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      -webkit-app-region: no-drag;
+    }
+
+    #contenedor {
+      flex: 1; /* toma el espacio vertical restante */
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* Menú principal con 3 botones, centrado */
+    #menu {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      z-index: 1;
+    }
+
+    /* El webview abarca todo el contenedor y se oculta cuando está el menú */
+    #navegador {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: none;
+    }
+
+    /* Botones ovalados del menú */
+    .menu-button {
+      position: relative;
+      padding: 1rem 2rem;
+      border-radius: 2rem;
+      border: 3px solid transparent;
+      background-color: #fdfdfd;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: transform 0.1s ease-out;
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); /* sombra en el borde */
+    }
+    .menu-button img {
+      width: 24px;
+      height: 24px;
+    }
+    /* Borde arcoíris con fade in/out (pseudo-elemento) */
+    .menu-button::before {
+      content: "";
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      border-radius: 2rem;
+      border: 3px solid red;
+      pointer-events: none;
+      opacity: 0;
+      animation: rainbow-border 1.5s linear infinite;
+      transition: opacity 0.3s;
+    }
+    .menu-button:hover::before {
+      opacity: 1; /* fade in */
+    }
+    @keyframes rainbow-border {
+      0%   { border-color: red; }
+      16%  { border-color: orange; }
+      32%  { border-color: yellow; }
+      48%  { border-color: green; }
+      64%  { border-color: blue; }
+      80%  { border-color: indigo; }
+      100% { border-color: violet; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra superior -->
+  <div id="barra-superior">
+    <!-- Botón Home -->
+    <button class="top-button" id="btnHome" title="Menú principal">
+      <svg width="24" height="24" fill="#000000" viewBox="0 0 24 24">
+        <path d="M10 20v-6h4v6h5v-8h3l-10-9-10 9h3v8h5z"/>
+      </svg>
+    </button>
+
+    <!-- Botón Atrás -->
+    <button class="top-button" id="btnAtras" title="Atrás">
+      <svg width="24" height="24" fill="#000000" viewBox="0 0 24 24">
+        <path d="M19 11H7.83l5.58-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H19v-2z"/>
+      </svg>
+    </button>
+
+    <!-- Botón Adelante -->
+    <button class="top-button" id="btnAdelante" title="Adelante">
+      <svg width="24" height="24" fill="#000000" viewBox="0 0 24 24">
+        <path d="M12 4l-1.41 1.41L16.17 11H5v2h11.17l-5.59 5.59L12 20l8-8-8-8z"/>
+      </svg>
+    </button>
+
+    <!-- Botón Recargar -->
+    <button class="top-button" id="btnRecargar" title="Recargar">
+      <svg width="24" height="24" fill="#000000" viewBox="0 0 24 24">
+        <path d="M12 6V2L8 6l4 4V6c3.309 0 6 2.691 6 6
+                 0 1.22-.364 2.348-.984 3.295l1.453 1.453C19.633 15.718
+                 20 14.385 20 13c0-4.411-3.589-8-8-8zM6.984 14.705C6.367
+                 13.76 6 12.384 6 11c0-1.385.367-2.718.937-3.748l-1.453-1.453
+                 C4.365 7.653 4 9.282 4 11c0 3.309 2.691 6 6 6v4l4-4-4-4v3
+                 c-1.657 0-3-1.343-3-3 0-.772.3-1.472.784-2.002l-.8-.293z"/>
+      </svg>
+    </button>
+
+    <!-- Botones nativos ventana -->
+    <div id="window-controls">
+      <button id="min-button">–</button>
+      <button id="max-button">□</button>
+      <button id="close-button">X</button>
+    </div>
+  </div>
+
+  <!-- Contenedor para menú + webview -->
+  <div id="contenedor">
+    <!-- Menú de inicio con 3 botones -->
+    <div id="menu">
+      <button class="menu-button" id="btnScoreSaber">
+        <img src="scoresaber.png" alt="Logo ScoreSaber" />
+        ScoreSaber
+      </button>
+      <button class="menu-button" id="btnScoreSaberReloaded">
+        <img src="scoresaber.png" alt="Logo SSR" />
+        ScoreSaber Reloaded
+      </button>
+      <button class="menu-button" id="btnBeatLeader">
+        <img src="beatleader.png" alt="Logo BeatLeader" />
+        BeatLeader
+      </button>
+    </div>
+
+    <!-- Webview -->
+    <webview
+      id="navegador"
+      allowpopups
+      partition="persist:navegador">
+    </webview>
+  </div>
+
+  <!-- L o g i c a  x d d d d -->
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    // Referencias
+    const webview = document.getElementById('navegador');
+    const menu = document.getElementById('menu');
+    const btnHome = document.getElementById('btnHome');
+    const btnAtras = document.getElementById('btnAtras');
+    const btnAdelante = document.getElementById('btnAdelante');
+    const btnRecargar = document.getElementById('btnRecargar');
+    const minButton = document.getElementById('min-button');
+    const maxButton = document.getElementById('max-button');
+    const closeButton = document.getElementById('close-button');
+    const btnScoreSaber = document.getElementById('btnScoreSaber');
+    const btnScoreSaberReloaded = document.getElementById('btnScoreSaberReloaded');
+    const btnBeatLeader = document.getElementById('btnBeatLeader');
+
+    // Minimizar, Maximizar, Cerrar
+    minButton.addEventListener('click', () => ipcRenderer.send('ventana-minimizar'));
+    maxButton.addEventListener('click', () => ipcRenderer.send('ventana-maximizar'));
+    closeButton.addEventListener('click', () => ipcRenderer.send('ventana-cerrar'));
+
+    // Navegación del webview
+    btnHome.addEventListener('click', () => {
+      menu.style.display = 'flex';
+      webview.style.display = 'none';
+      webview.src = '';
+    });
+    btnAtras.addEventListener('click', () => {
+      if (webview.canGoBack()) webview.goBack();
+    });
+    btnAdelante.addEventListener('click', () => {
+      if (webview.canGoForward()) webview.goForward();
+    });
+    btnRecargar.addEventListener('click', () => webview.reload());
+
+    // Botones de menú
+    btnScoreSaber.addEventListener('click', () => abrirEnWebview('https://scoresaber.com/'));
+    btnScoreSaberReloaded.addEventListener('click', () => abrirEnWebview('https://ssr.fascinated.cc/'));
+    btnBeatLeader.addEventListener('click', () => abrirEnWebview('https://beatleader.xyz/'));
+
+    function abrirEnWebview(url) {
+      menu.style.display = 'none';
+      webview.style.display = 'flex';
+      webview.src = url;
+    }
+
+    // Ajuste de resolución
+    function ajustarResolucion() {
+      const alturaVentana = window.innerHeight;
+      const alturaBarra = document.getElementById('barra-superior').offsetHeight;
+      const alturaDisponible = alturaVentana - alturaBarra;
+
+      if (webview) {
+        webview.style.height = `${alturaDisponible}px`;
+        webview.style.width = '100%';
+      }
+      if (menu) {
+        menu.style.height = `${alturaDisponible}px`;
+      }
+    }
+
+    window.onload = ajustarResolucion;
+    window.onresize = ajustarResolucion;
+
+    // Efecto 3D dinámico en los botones del menú
+    const botonesMenu = document.querySelectorAll('.menu-button');
+    botonesMenu.forEach((button) => {
+      button.addEventListener('mousemove', (e) => {
+        const rect = button.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = -(y - centerY) / 10;
+        const rotateY = (x - centerX) / 10;
+        button.style.transform = `perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      });
+      button.addEventListener('mouseleave', () => {
+        button.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg)';
+      });
+    });
+
+  </script>
+</body>
+</html>
